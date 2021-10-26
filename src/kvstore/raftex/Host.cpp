@@ -36,6 +36,26 @@ Host::Host(const HostAddr& addr, std::shared_ptr<RaftPart> part, bool isLearner)
           "%s[Host: %s:%d] ", part_->idStr_.c_str(), addr_.host.c_str(), addr_.port)),
       cachingPromise_(folly::SharedPromise<cpp2::AppendLogResponse>()) {}
 
+void Host::reset() {
+  std::unique_lock<std::mutex> g(lock_);
+  LOG(WARNING) << idStr_ << "wtf " << requestOnGoing_;
+  bool ongoing = noMoreRequestCV_.wait_for(
+      g, std::chrono::milliseconds(FLAGS_raft_rpc_timeout_ms << 1), [this] {
+        return !requestOnGoing_;
+      });
+  if (ongoing) {
+    LOG(WARNING) << idStr_ << "!requestOnGoing_ is still false after wait";
+    requestOnGoing_ = false;
+  }
+  logIdToSend_ = 0;
+  logTermToSend_ = 0;
+  lastLogIdSent_ = 0;
+  lastLogTermSent_ = 0;
+  committedLogId_ = 0;
+  sendingSnapshot_ = false;
+  followerCommittedLogId_ = 0;
+}
+
 void Host::waitForStop() {
   std::unique_lock<std::mutex> g(lock_);
 

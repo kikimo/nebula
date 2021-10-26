@@ -39,17 +39,8 @@ class Host final : public std::enable_shared_from_this<Host> {
     stopped_ = true;
   }
 
-  void reset() {
-    std::unique_lock<std::mutex> g(lock_);
-    noMoreRequestCV_.wait(g, [this] { return !requestOnGoing_; });
-    logIdToSend_ = 0;
-    logTermToSend_ = 0;
-    lastLogIdSent_ = 0;
-    lastLogTermSent_ = 0;
-    committedLogId_ = 0;
-    sendingSnapshot_ = false;
-    followerCommittedLogId_ = 0;
-  }
+  // only invoked from RaftPart
+  void reset();
 
   void waitForStop();
 
