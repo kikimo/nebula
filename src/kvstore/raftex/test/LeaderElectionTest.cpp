@@ -15,6 +15,7 @@
 #include "kvstore/raftex/RaftexService.h"
 #include "kvstore/raftex/test/RaftexTestBase.h"
 #include "kvstore/raftex/test/TestShard.h"
+#include "kvstore/raftex/test/UnreliableRaftService.h"
 
 namespace nebula {
 namespace raftex {
@@ -25,7 +26,7 @@ TEST(LeaderElection, ElectionWithThreeCopies) {
   std::shared_ptr<thread::GenericThreadPool> workers;
   std::vector<std::string> wals;
   std::vector<HostAddr> allHosts;
-  std::vector<std::shared_ptr<RaftexService>> services;
+  std::vector<std::shared_ptr<test::UnreliableRaftexService>> services;
   std::vector<std::shared_ptr<test::TestShard>> copies;
 
   std::shared_ptr<test::TestShard> leader;
@@ -45,7 +46,7 @@ TEST(LeaderElection, ElectionWithOneCopy) {
   std::shared_ptr<thread::GenericThreadPool> workers;
   std::vector<std::string> wals;
   std::vector<HostAddr> allHosts;
-  std::vector<std::shared_ptr<RaftexService>> services;
+  std::vector<std::shared_ptr<test::UnreliableRaftexService>> services;
   std::vector<std::shared_ptr<test::TestShard>> copies;
 
   std::shared_ptr<test::TestShard> leader;
@@ -66,7 +67,7 @@ TEST(LeaderElection, LeaderCrash) {
   std::shared_ptr<thread::GenericThreadPool> workers;
   std::vector<std::string> wals;
   std::vector<HostAddr> allHosts;
-  std::vector<std::shared_ptr<RaftexService>> services;
+  std::vector<std::shared_ptr<test::UnreliableRaftexService>> services;
   std::vector<std::shared_ptr<test::TestShard>> copies;
 
   std::shared_ptr<test::TestShard> leader;

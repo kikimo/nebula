@@ -16,6 +16,7 @@
 #include "common/network/NetworkUtils.h"
 #include "common/thread/GenericThreadPool.h"
 #include "kvstore/raftex/SnapshotManager.h"
+#include "kvstore/raftex/test/UnreliableRaftService.h"
 
 namespace nebula {
 
@@ -25,6 +26,7 @@ class RaftexService;
 
 namespace test {
 class TestShard;
+class UnreliableRaftexService;
 }  // namespace test
 
 extern std::mutex leaderMutex;
@@ -57,12 +59,12 @@ void setupRaft(int32_t numCopies,
                std::shared_ptr<thread::GenericThreadPool>& workers,
                std::vector<std::string>& wals,
                std::vector<HostAddr>& allHosts,
-               std::vector<std::shared_ptr<RaftexService>>& services,
+               std::vector<std::shared_ptr<test::UnreliableRaftexService>>& services,
                std::vector<std::shared_ptr<test::TestShard>>& copies,
                std::shared_ptr<test::TestShard>& leader,
                std::vector<bool> isLearner = {});
 
-void finishRaft(std::vector<std::shared_ptr<RaftexService>>& services,
+void finishRaft(std::vector<std::shared_ptr<test::UnreliableRaftexService>>& services,
                 std::vector<std::shared_ptr<test::TestShard>>& copies,
                 std::shared_ptr<thread::GenericThreadPool>& workers,
                 std::shared_ptr<test::TestShard>& leader);
@@ -91,18 +93,18 @@ bool checkLog(std::shared_ptr<test::TestShard>& copy,
               size_t end,
               std::vector<std::string>& msgs);
 
-void killOneCopy(std::vector<std::shared_ptr<RaftexService>>& services,
+void killOneCopy(std::vector<std::shared_ptr<test::UnreliableRaftexService>>& services,
                  std::vector<std::shared_ptr<test::TestShard>>& copies,
                  std::shared_ptr<test::TestShard>& leader,
                  size_t index);
 
-void rebootOneCopy(std::vector<std::shared_ptr<RaftexService>>& services,
+void rebootOneCopy(std::vector<std::shared_ptr<test::UnreliableRaftexService>>& services,
                    std::vector<std::shared_ptr<test::TestShard>>& copies,
                    std::vector<HostAddr> allHosts,
                    size_t index);
 
 std::vector<std::shared_ptr<SnapshotManager>> snapshots(
-    const std::vector<std::shared_ptr<RaftexService>>& services);
+    const std::vector<std::shared_ptr<test::UnreliableRaftexService>>& services);
 
 class RaftexTestFixture : public ::testing::Test {
  public:
@@ -131,7 +133,7 @@ class RaftexTestFixture : public ::testing::Test {
   std::shared_ptr<thread::GenericThreadPool> workers_;
   std::vector<std::string> wals_;
   std::vector<HostAddr> allHosts_;
-  std::vector<std::shared_ptr<RaftexService>> services_;
+  std::vector<std::shared_ptr<test::UnreliableRaftexService>> services_;
   std::vector<std::shared_ptr<test::TestShard>> copies_;
   std::shared_ptr<test::TestShard> leader_;
   std::vector<std::shared_ptr<SnapshotManager>> snapshots_;

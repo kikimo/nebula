@@ -53,20 +53,24 @@ class RaftexService : public cpp2::RaftexServiceSvIf {
 
   std::shared_ptr<RaftPart> findPart(GraphSpaceID spaceId, PartitionID partId);
 
- private:
+
+ protected:
   void initThriftServer(std::shared_ptr<folly::IOThreadPoolExecutor> pool,
                         std::shared_ptr<folly::Executor> workers,
                         uint16_t port = 0);
+  RaftexService() = default;
+
+ private:
   bool setup();
   void serve();
 
   // Block until the service is ready to serve
   void waitUntilReady();
 
-  RaftexService() = default;
+ protected:
+  std::unique_ptr<apache::thrift::ThriftServer> server_;
 
  private:
-  std::unique_ptr<apache::thrift::ThriftServer> server_;
   std::unique_ptr<std::thread> serverThread_;
   uint32_t serverPort_;
 

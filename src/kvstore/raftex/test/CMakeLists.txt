@@ -22,6 +22,8 @@ nebula_add_test(
         LeaderElectionTest.cpp
         RaftexTestBase.cpp
         TestShard.cpp
+        UnreliableRaftService.cpp
+
     OBJECTS
         ${RAFTEX_TEST_LIBS}
     LIBRARIES

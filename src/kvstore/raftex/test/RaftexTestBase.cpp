@@ -10,6 +10,7 @@
 #include "common/thrift/ThriftClientManager.h"
 #include "kvstore/raftex/RaftexService.h"
 #include "kvstore/raftex/test/TestShard.h"
+#include "kvstore/raftex/test/UnreliableRaftService.h"
 
 DECLARE_uint32(raft_heartbeat_interval_secs);
 
@@ -145,7 +146,7 @@ void setupRaft(int32_t numCopies,
                std::shared_ptr<thread::GenericThreadPool>& workers,
                std::vector<std::string>& wals,
                std::vector<HostAddr>& allHosts,
-               std::vector<std::shared_ptr<RaftexService>>& services,
+               std::vector<std::shared_ptr<test::UnreliableRaftexService>>& services,
                std::vector<std::shared_ptr<test::TestShard>>& copies,
                std::shared_ptr<test::TestShard>& leader,
                std::vector<bool> isLearner) {
@@ -162,7 +163,8 @@ void setupRaft(int32_t numCopies,
 
   // Set up services
   for (int i = 0; i < numCopies; ++i) {
-    services.emplace_back(RaftexService::createService(nullptr, nullptr));
+    // services.emplace_back(RaftexService::createService(nullptr, nullptr));
+    services.emplace_back(test::UnreliableRaftexService::createService(nullptr, nullptr));
     if (!services.back()->start()) return;
     uint16_t port = services.back()->getServerPort();
     allHosts.emplace_back(ipStr, port);
@@ -203,7 +205,7 @@ void setupRaft(int32_t numCopies,
   waitUntilLeaderElected(copies, leader, isLearner);
 }
 
-void finishRaft(std::vector<std::shared_ptr<RaftexService>>& services,
+void finishRaft(std::vector<std::shared_ptr<test::UnreliableRaftexService>>& services,
                 std::vector<std::shared_ptr<test::TestShard>>& copies,
                 std::shared_ptr<thread::GenericThreadPool>& workers,
                 std::shared_ptr<test::TestShard>& leader) {
@@ -318,7 +320,7 @@ bool checkLog(std::shared_ptr<test::TestShard>& copy,
   return true;
 }
 
-void killOneCopy(std::vector<std::shared_ptr<RaftexService>>& services,
+void killOneCopy(std::vector<std::shared_ptr<test::UnreliableRaftexService>>& services,
                  std::vector<std::shared_ptr<test::TestShard>>& copies,
                  std::shared_ptr<test::TestShard>& leader,
                  size_t index) {
@@ -330,7 +332,7 @@ void killOneCopy(std::vector<std::shared_ptr<RaftexService>>& services,
   LOG(INFO) << "copies " << index << " stop";
 }
 
-void rebootOneCopy(std::vector<std::shared_ptr<RaftexService>>& services,
+void rebootOneCopy(std::vector<std::shared_ptr<test::UnreliableRaftexService>>& services,
                    std::vector<std::shared_ptr<test::TestShard>>& copies,
                    std::vector<HostAddr> allHosts,
                    size_t index) {
@@ -340,7 +342,7 @@ void rebootOneCopy(std::vector<std::shared_ptr<RaftexService>>& services,
 }
 
 std::vector<std::shared_ptr<SnapshotManager>> snapshots(
-    const std::vector<std::shared_ptr<RaftexService>>& services) {
+    const std::vector<std::shared_ptr<test::UnreliableRaftexService>>& services) {
   std::vector<std::shared_ptr<SnapshotManager>> snapshots;
   for (auto& service : services) {
     std::shared_ptr<SnapshotManager> snapshot(new test::NebulaSnapshotManager(service.get()));
