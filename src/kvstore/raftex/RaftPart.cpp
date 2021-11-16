@@ -1056,6 +1056,15 @@ bool RaftPart::processElectionResponses(const RaftPart::ElectionResponses& resul
       LOG(INFO) << idStr_ << "Partition win prevote of term " << proposedTerm;
     } else {
       LOG(INFO) << idStr_ << "Partition is elected as the new leader for term " << proposedTerm;
+      // FIXME increase term_ after winning an election, don't know whether
+      // there are potential problems.
+      // Think we might as well simplify this process by:
+      // 1. eliminate proposedTerm_, it's confusing and we can really get rid
+      //    of this without any loss.
+      // 2. increate term at prevote request and if we win and prevote, increase
+      //    current term
+      // 3. maybe, seperating prevote from askForVote make the code clearer and
+      //    more maintainable
       term_ = proposedTerm;
       role_ = Role::LEADER;
       isBlindFollower_ = false;
@@ -1284,6 +1293,9 @@ void RaftPart::processAskForVoteRequest(const cpp2::AskForVoteRequest& req,
     LOG(INFO) << idStr_ << "The partition currently is on term " << term_
               << ", the term proposed by the candidate is " << req.get_term()
               << ", so it will be rejected";
+    // FIXME:
+    // 1. why not response with higher current term
+    // 2. why not reset local in response if we meet a higher term
     resp.set_error_code(cpp2::ErrorCode::E_TERM_OUT_OF_DATE);
     return;
   }
@@ -1314,6 +1326,7 @@ void RaftPart::processAskForVoteRequest(const cpp2::AskForVoteRequest& req,
     }
   }
 
+  // FIXME we cannot grant this vote if req.get_term() == term_ and we've vote for other candidate
   if (req.get_is_pre_vote()) {
     // return succeed if it is prevote, do not change any state
     resp.set_error_code(cpp2::ErrorCode::SUCCEEDED);
@@ -1342,6 +1355,7 @@ void RaftPart::processAskForVoteRequest(const cpp2::AskForVoteRequest& req,
   }
   role_ = Role::FOLLOWER;
   votedAddr_ = candidate;
+  // FIXME what's proposedTerm for since we've set term_ at line 1294?
   proposedTerm_ = req.get_term();
   leader_ = HostAddr("", 0);
 
