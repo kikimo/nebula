@@ -996,6 +996,9 @@ bool RaftPart::prepareElectionRequest(cpp2::AskForVoteRequest& req,
     req.set_term(term_ + 1);
   } else {
     req.set_term(++term_);
+    // vote for self before aksing for vote
+    votedTerm_ = term_;
+    votedAddr_ = addr_;
   }
   req.set_last_log_id(lastLogId_);
   req.set_last_log_term(lastLogTerm_);
@@ -1306,7 +1309,12 @@ void RaftPart::processAskForVoteRequest(const cpp2::AskForVoteRequest& req,
   auto oldTerm = term_;
   // req.get_term() >= term_, we won't update term in prevote
   if (!req.get_is_pre_vote()) {
-    term_ = req.get_term();
+    if (term_ < req.get_term()) {
+      term_ = req.get_term();
+      role_ = Role::FOLLOWER;
+    } else {  // term_ == req.get_term()
+      // do nothingk
+    }
   }
 
   // Check the last term to receive a log
