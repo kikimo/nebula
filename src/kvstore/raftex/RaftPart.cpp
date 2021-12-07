@@ -1312,6 +1312,7 @@ void RaftPart::processAskForVoteRequest(const cpp2::AskForVoteRequest& req,
     if (term_ < req.get_term()) {
       term_ = req.get_term();
       role_ = Role::FOLLOWER;
+      votedAddr_ = HostAddr("", 0);
     } else {  // term_ == req.get_term()
       // do nothingk
     }
