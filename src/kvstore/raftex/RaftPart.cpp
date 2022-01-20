@@ -382,8 +382,12 @@ nebula::cpp2::ErrorCode RaftPart::canAppendLogs(TermID termId) {
 }
 
 void RaftPart::addLearner(const HostAddr& addr) {
-  CHECK(!raftLock_.try_lock());
+  bool acquiredHere = raftLock_.try_lock();  // because addLearner may be called in the
+                                             // NebulaStore, in which we could not access raftLock_
   if (addr == addr_) {
+    if (acquiredHere) {
+      raftLock_.unlock();
+    }
     VLOG(1) << idStr_ << "I am learner!";
     return;
   }
@@ -395,6 +399,10 @@ void RaftPart::addLearner(const HostAddr& addr) {
   } else {
     VLOG(1) << idStr_ << "The host " << addr << " has been existed as "
             << ((*it)->isLearner() ? " learner " : " group member");
+  }
+
+  if (acquiredHere) {
+    raftLock_.unlock();
   }
 }
 
