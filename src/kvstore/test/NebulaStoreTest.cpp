@@ -246,6 +246,93 @@ TEST(NebulaStoreTest, PartsTest) {
   ASSERT_TRUE(store->spaces_.find(0) == store->spaces_.end());
 }
 
+TEST(NebulaStoreTest, PersistPeersTest) {
+  fs::TempDir rootPath("/tmp/nebula_store_test.XXXXXX");
+  auto ioThreadPool = std::make_shared<folly::IOThreadPoolExecutor>(4);
+  auto partMan = std::make_unique<MemPartManager>();
+
+  // GraphSpaceID =>  {PartitionIDs}
+  // 0 => {0, 1, 2, 3...9}
+  // The parts on PartMan is 0...9
+  for (auto partId = 0; partId < 10; partId++) {
+    partMan->addPart(0, partId);
+  }
+
+  std::vector<std::string> paths;
+  paths.emplace_back(folly::stringPrintf("%s/disk1", rootPath.path()));
+  paths.emplace_back(folly::stringPrintf("%s/disk2", rootPath.path()));
+
+  HostAddr local = {"", 0};
+  for (size_t i = 0; i < paths.size(); i++) {
+    auto db = std::make_unique<RocksEngine>(0, /* spaceId */
+                                            kDefaultVidLen,
+                                            paths[i]);
+    for (auto partId = 0; partId < 3; partId++) {
+      db->addPart(5 * i + partId);
+    }
+
+    if (i == 0) {
+      Peers peers;
+      peers.addOrUpdate(Peer(local, Peer::Status::kLearner));
+      db->addPart(5 * i + 10, peers);
+    } else {
+      Peers peers;
+      peers.addOrUpdate(Peer(local, Peer::Status::kPromotedPeer));
+      db->addPart(5 * i + 10, peers);
+    }
+    auto parts = db->allParts();
+    dump(parts);
+  }
+  // Currently, the disks hold parts as below:
+  // disk1: 0, 1, 2, 10
+  // disk2: 5, 6, 7, 15
+
+  KVOptions options;
+  options.dataPaths_ = std::move(paths);
+  options.partMan_ = std::move(partMan);
+  auto store =
+      std::make_unique<NebulaStore>(std::move(options), ioThreadPool, local, getHandlers());
+  store->init();
+  auto check = [&](GraphSpaceID spaceId) {
+    for (int i = 0; i < static_cast<int>(paths.size()); i++) {
+      ASSERT_EQ(folly::stringPrintf("%s/disk%d/nebula/%d", rootPath.path(), i + 1, spaceId),
+                store->spaces_[spaceId]->engines_[i]->getDataRoot());
+      auto parts = store->spaces_[spaceId]->engines_[i]->allParts();
+      dump(parts);
+      if (i == 0) {
+        ASSERT_EQ(6, parts.size());
+      } else {
+        ASSERT_EQ(6, parts.size());
+      }
+    }
+  };
+  check(0);
+  // After init, the parts should be 0-9, and the distribution should be
+  // disk1: 0, 1, 2, 3, 8, 10
+  // disk2: 4, 5, 6, 7, 9, 15
+  // After restart, the original order should not been broken.
+  {
+    auto parts = store->spaces_[0]->engines_[0]->allParts();
+    dump(parts);
+    ASSERT_EQ(0, parts[0]);
+    ASSERT_EQ(1, parts[1]);
+    ASSERT_EQ(2, parts[2]);
+    ASSERT_EQ(3, parts[3]);
+    ASSERT_EQ(8, parts[4]);
+    ASSERT_EQ(10, parts[5]);
+  }
+  {
+    auto parts = store->spaces_[0]->engines_[1]->allParts();
+    dump(parts);
+    ASSERT_EQ(4, parts[0]);
+    ASSERT_EQ(5, parts[1]);
+    ASSERT_EQ(6, parts[2]);
+    ASSERT_EQ(7, parts[3]);
+    ASSERT_EQ(9, parts[4]);
+    ASSERT_EQ(15, parts[5]);
+  }
+}
+
 TEST(NebulaStoreTest, ThreeCopiesTest) {
   fs::TempDir rootPath("/tmp/nebula_store_test.XXXXXX");
   auto initNebulaStore = [](const std::vector<HostAddr>& peers,

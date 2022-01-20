@@ -9,6 +9,7 @@
 #include "common/utils/IndexKeyUtils.h"
 #include "common/utils/NebulaKeyUtils.h"
 #include "common/utils/OperationKeyUtils.h"
+#include "common/utils/Utils.h"
 #include "kvstore/LogEncoder.h"
 #include "kvstore/RocksEngineConfig.h"
 
@@ -409,6 +410,9 @@ bool Part::preProcessLog(LogID logId, TermID termId, ClusterID clusterId, const 
         if (ts > startTimeMs_) {
           VLOG(1) << idStr_ << "preprocess add learner " << learner;
           addLearner(learner);
+
+          // persist the part learner info in case of storaged restarting
+          engine_->updatePart(partId_, Peer(learner, Peer::Status::kLearner));
         } else {
           VLOG(1) << idStr_ << "Skip stale add learner " << learner << ", the part is opened at "
                   << startTimeMs_ << ", but the log timestamp is " << ts;
@@ -434,6 +438,9 @@ bool Part::preProcessLog(LogID logId, TermID termId, ClusterID clusterId, const 
         if (ts > startTimeMs_) {
           VLOG(1) << idStr_ << "preprocess add peer " << peer;
           addPeer(peer);
+
+          // persist the part info in case of storaged restarting
+          engine_->updatePart(partId_, Peer(peer, Peer::Status::kPromotedPeer));
         } else {
           VLOG(1) << idStr_ << "Skip stale add peer " << peer << ", the part is opened at "
                   << startTimeMs_ << ", but the log timestamp is " << ts;
@@ -446,6 +453,9 @@ bool Part::preProcessLog(LogID logId, TermID termId, ClusterID clusterId, const 
         if (ts > startTimeMs_) {
           VLOG(1) << idStr_ << "preprocess remove peer " << peer;
           preProcessRemovePeer(peer);
+
+          // remove peer in the persist info
+          engine_->updatePart(partId_, Peer(peer, Peer::Status::kDeleted));
         } else {
           VLOG(1) << idStr_ << "Skip stale remove peer " << peer << ", the part is opened at "
                   << startTimeMs_ << ", but the log timestamp is " << ts;
