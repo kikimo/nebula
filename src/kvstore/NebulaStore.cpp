@@ -400,7 +400,6 @@ void NebulaStore::removeSpace(GraphSpaceID spaceId, bool isListener) {
         }
         CHECK_EQ(0, engine->totalPartsNum());
       }
-      CHECK(spaceIt->second->parts_.empty());
       std::vector<std::string> enginePaths;
       if (FLAGS_auto_remove_invalid_space) {
         for (auto& engine : engines) {
