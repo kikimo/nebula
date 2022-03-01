@@ -247,6 +247,7 @@ bool StorageServer::start() {
       storageServer_->setIdleTimeout(std::chrono::seconds(0));
       storageServer_->setIOThreadPool(ioThreadPool_);
       storageServer_->setStopWorkersOnStopListening(false);
+      storageServer_->leakOutstandingRequestsWhenServerStops(true);
       if (FLAGS_enable_ssl) {
         storageServer_->setSSLConfig(nebula::sslContextConfig());
       }
@@ -280,6 +281,7 @@ bool StorageServer::start() {
       adminServer_->setIOThreadPool(ioThreadPool_);
       adminServer_->setThreadManager(workers_);
       adminServer_->setStopWorkersOnStopListening(false);
+      adminServer_->leakOutstandingRequestsWhenServerStops(true);
       adminServer_->setInterface(std::move(handler));
       if (FLAGS_enable_ssl) {
         adminServer_->setSSLConfig(nebula::sslContextConfig());
@@ -309,6 +311,7 @@ bool StorageServer::start() {
       internalStorageServer_->setIOThreadPool(ioThreadPool_);
       internalStorageServer_->setThreadManager(workers_);
       internalStorageServer_->setStopWorkersOnStopListening(false);
+      internalStorageServer_->leakOutstandingRequestsWhenServerStops(true);
       internalStorageServer_->setInterface(std::move(handler));
       if (FLAGS_enable_ssl) {
         internalStorageServer_->setSSLConfig(nebula::sslContextConfig());
@@ -355,8 +358,8 @@ void StorageServer::waitUntilStop() {
 
   this->stop();
 
-  adminThread_->join();
   storageThread_->join();
+  adminThread_->join();
   internalStorageThread_->join();
 }
 
@@ -388,12 +391,20 @@ void StorageServer::stop() {
   ServiceStatus interStorageExpected = ServiceStatus::STATUS_RUNNING;
   internalStorageSvcStatus_.compare_exchange_strong(interStorageExpected, STATUS_STOPPED);
 
-  // kvstore need to stop back ground job before http server dctor
+  webSvc_.reset();
+
   if (kvstore_) {
     kvstore_->stop();
   }
-
-  webSvc_.reset();
+  if (storageServer_) {
+    storageServer_->stop();
+  }
+  if (adminServer_) {
+    adminServer_->stop();
+  }
+  if (internalStorageServer_) {
+    internalStorageServer_->stop();
+  }
 
   if (txnMan_) {
     txnMan_->stop();
@@ -407,15 +418,6 @@ void StorageServer::stop() {
   }
   if (kvstore_) {
     kvstore_.reset();
-  }
-  if (adminServer_) {
-    adminServer_->stop();
-  }
-  if (internalStorageServer_) {
-    internalStorageServer_->stop();
-  }
-  if (storageServer_) {
-    storageServer_->stop();
   }
 }
 
