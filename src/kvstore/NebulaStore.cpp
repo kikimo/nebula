@@ -93,6 +93,9 @@ void NebulaStore::loadPartFromDataPath() {
         GraphSpaceID spaceId;
         try {
           spaceId = folly::to<GraphSpaceID>(dir);
+          if (spaceId <= 0) {
+            continue;
+          }
         } catch (const std::exception& ex) {
           LOG(ERROR) << folly::sformat("Data path {} invalid {}", dir, ex.what());
           continue;
