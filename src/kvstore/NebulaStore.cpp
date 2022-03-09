@@ -1169,7 +1169,7 @@ void NebulaStore::cleanWAL() {
       auto& part = partEntry.second;
       if (part->needToCleanWal()) {
         // clean wal by expired time
-        part->wal()->cleanWAL();
+        part->cleanWal();
       }
     }
   }

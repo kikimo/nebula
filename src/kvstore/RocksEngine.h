@@ -131,7 +131,7 @@ class RocksEngine : public KVEngine {
 
  public:
   /**
-   * @brief Construct a new rocksdb instance
+   * @brdief Construct a new rocksdb instance
    *
    * @param spaceId
    * @param vIdLen Vertex id length, used for perfix bloom filter
