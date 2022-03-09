@@ -160,6 +160,8 @@ class RaftPart : public std::enable_shared_from_this<RaftPart> {
     return term_;
   }
 
+  void cleanWal();
+
   /**
    * @brief Return the wal
    */
