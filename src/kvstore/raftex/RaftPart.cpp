@@ -1865,6 +1865,7 @@ void RaftPart::processSendSnapshotRequest(const cpp2::SendSnapshotRequest& req,
             << ", total rows sended " << req.get_total_count() << ", total size received "
             << lastTotalSize_ << ", total size sended " << req.get_total_size();
     resp.error_code_ref() = nebula::cpp2::ErrorCode::E_RAFT_PERSIST_SNAPSHOT_FAILED;
+    status_ = Status::RUNNING;
     return;
   }
   if (req.get_done()) {
