@@ -581,7 +581,7 @@ class NebulaStore : public KVStore, public Handler {
    * @param spaceId
    * @param partId
    */
-  void removePart(GraphSpaceID spaceId, PartitionID partId) override;
+  void removePart(GraphSpaceID spaceId, PartitionID partId, bool needLock = true) override;
 
   /**
    * @brief Retrive the leader distribution
