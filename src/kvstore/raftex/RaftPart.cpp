@@ -354,6 +354,9 @@ void RaftPart::stop() {
 
 void RaftPart::cleanWal() {
   std::lock_guard<std::mutex> g(raftLock_);
+  if (status_ == Status::STOPPED) {
+    return;
+  }
   wal()->cleanWAL(committedLogId_);
 }
 
