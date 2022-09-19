@@ -98,12 +98,20 @@ void KvClient::loopForever() {
         {cfg_.partId, kvs},
     };
     req.parts_ref() = parts;
-    ExecResponse resp = client->future_put(req).get();
-    auto &ret = resp.get_result();
-    auto &fprets = ret.get_failed_parts();
-    for (auto &fp : fprets) {
-      LOG(ERROR) << folly::format("error putting kv: {}", static_cast<int>(fp.get_code()));
-    }
+    // ExecResponse resp = client->future_put(req).get();
+    client->future_put(req)
+        .thenValue([](ExecResponse resp) {
+          auto &ret = resp.get_result();
+          auto &fprets = ret.get_failed_parts();
+          for (auto &fp : fprets) {
+            LOG(ERROR) << folly::format("error putting kv: {}", static_cast<int>(fp.get_code()));
+          }
+        })
+        .thenError(folly::tag_t<std::exception>{},
+                   [](std::exception const &ex) {
+                     LOG(ERROR) << folly::format("error putting kv: {}", ex.what());
+                   })
+        .wait();
   }
 }
 
