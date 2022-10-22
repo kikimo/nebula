@@ -1,5 +1,12 @@
-# set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,fuzzer -g")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,fuzzer -g")
 # add_executable(graph_fuzz graph_fuzz.cpp)
+
+nebula_add_executable(
+    NAME
+        hello-fuzzer
+    SOURCES
+        HelloFuzzer.cpp 
+)
 
 nebula_add_executable(
     NAME
